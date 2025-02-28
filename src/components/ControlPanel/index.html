@@ -1,0 +1,144 @@
+
+
+以下是使用D3.js根据你的数据结构绘制雷达图的实现代码：
+
+```html
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Radar Chart</title>
+  <script src="https://d3js.org/d3.v7.min.js"></script>
+  <style>
+    .radar-chart {
+      background-color: #f0f0f0;
+    }
+    .axis-line {
+      stroke: #999;
+      stroke-width: 1;
+    }
+    .grid-circle {
+      fill: none;
+      stroke: #ddd;
+      stroke-width: 0.5;
+    }
+    .radar-area {
+      fill: rgba(255, 0, 0, 0.2);
+      stroke: red;
+      stroke-width: 2;
+    }
+    .axis-label {
+      font-size: 12px;
+      fill: #333;
+    }
+  </style>
+</head>
+<body>
+  <div id="radar-container"></div>
+
+  <script>
+    // 示例数据
+    const data = [{
+      name: "基本数据类型",
+      bandI: 0,
+      deepI: 50,
+      dif: 25,
+      num: 10
+    }];
+
+    // 图表配置
+    const width = 500,
+          height = 500,
+          margin = { top: 60, right: 60, bottom: 60, left: 60 };
+
+    // 创建SVG容器
+    const svg = d3.select("#radar-container")
+      .append("svg")
+      .attr("width", width)
+      .attr("height", height)
+      .append("g")
+      .attr("transform", `translate(${width/2},${height/2})`);
+
+    // 定义雷达图维度
+    const dimensions = ['bandI', 'deepI', 'dif', 'num','aa'];
+    
+    // 计算最大值
+    const maxValues = dimensions.reduce((acc, dim) => {
+      acc[dim] = d3.max(data, d => d[dim]);
+      return acc;
+    }, {});
+
+    // 雷达图半径
+    const radius = d3.min([width, height]) / 2 - 40;
+
+    // 创建角度比例尺
+    const angleSlice = (2 * Math.PI) / dimensions.length;
+
+    // 创建半径比例尺
+    const rScale = d3.scaleLinear()
+      .domain([0, d3.max(Object.values(maxValues))])
+      .range([0, radius]);
+
+    // 绘制网格线
+    const gridLevels = 5;
+    for (let i = 0; i < gridLevels; i++) {
+      const levelRadius = radius * (i + 1) / gridLevels;
+      
+      svg.append("circle")
+        .attr("r", levelRadius)
+        .attr("class", "grid-circle");
+    }
+
+    // 绘制轴线
+    dimensions.forEach((dim, i) => {
+      const angle = i * angleSlice - Math.PI/2;
+      
+      // 绘制轴线
+      svg.append("line")
+        .attr("x1", 0)
+        .attr("y1", 0)
+        .attr("x2", Math.cos(angle) * radius)
+        .attr("y2", Math.sin(angle) * radius)
+        .attr("class", "axis-line");
+
+      // 添加维度标签
+      svg.append("text")
+        .attr("x", Math.cos(angle) * (radius + 15))
+        .attr("y", Math.sin(angle) * (radius + 15))
+        .text(dim)
+        .attr("text-anchor", "middle")
+        .attr("class", "axis-label");
+    });
+
+    // 创建雷达图生成器
+    const radarLine = d3.lineRadial()
+      .angle((d, i) => i * angleSlice - Math.PI/2)
+      .radius(d => rScale(d.value))
+      .curve(d3.curveLinearClosed);
+
+    // 转换数据格式
+    const formattedData = data.map(item => ({
+      name: item.name,
+      values: dimensions.map(dim => ({
+        axis: dim,
+        value: item[dim]
+      }))
+    }));
+
+    // 绘制数据区域
+    svg.selectAll(".radar-area")
+      .data(formattedData)
+      .enter()
+      .append("path")
+      .attr("class", "radar-area")
+      .attr("d", d => radarLine(d.values));
+
+    // 添加中心点文字
+    svg.append("text")
+      .attr("y", -radius - 30)
+      .attr("text-anchor", "middle")
+      .text("基本数据类型")
+      .style("font-weight", "bold");
+  </script>
+</body>
+</html>
