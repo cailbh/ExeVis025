@@ -21,13 +21,15 @@ function generateConceptStats(problemIds) {
     console.log('connn',problemConcepts)
   // 第二步：构建概念统计信息
   const conceptStats = new Map();
-  
+  let proConRels = [];
   // 遍历所有选中的问题
+  let idx=0;
   problemConcepts.forEach((concepts, problemId) => {
       const problem = problemMap.get(problemId);
       // console.log(11111,problemMap,problem,concepts, problemId,conceptList)
       if (!problem) return;
-      
+      proConRels.push({proId:problemId,concepts:concepts,order:idx})
+      idx+=1;
       const conceptList = Array.from(concepts);
       
       // 更新每个概念的统计信息
@@ -71,7 +73,7 @@ function generateConceptStats(problemIds) {
       difficulty: stat.proNum > 0 ? stat.totalDifficulty / stat.proNum : 0,
       proNum: stat.proNum,
       rel: Array.from(stat.relations.entries()).map(([id, num]) => ({ id, num }))
-  })),conTreeJson]
+  })),conTreeJson,proConRels]
 }
 
 

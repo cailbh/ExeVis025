@@ -22,8 +22,9 @@
     </div>
     <div id="editToolDiv" @click="editToolClk">
       <img class="icons" :src="editToolUrl">
-    </div> -->
-</div></template>
+    </div>
+</div> -->
+</template>
 
 <script>
 // import { param } from 'server/api';
@@ -361,6 +362,7 @@ export default {
       gapX: 50,
       currentNetData: [],
       proConNet: [],
+      proConRels:[],
       edgeList: [],
       nodeList: [],
       curEdgeList: [],
@@ -389,6 +391,7 @@ export default {
   methods: {
     delConsNet() {
       let proConNet = this.proConNet;
+      let proConRels = this.proConRels;
       const edgeList = [];
       let relWeightMax = 0;
       let rootRelMap = {};
@@ -423,8 +426,19 @@ export default {
           });
         });
       });
-      const nodeList = Array.from(proConNet).map(con => ({ id: con['conceptId'], dif: con['difficulty'], num: con['proNum'] }));
+      const nodeList = Array.from(proConNet).map(con => ({ id: con['conceptId'], dif: con['difficulty'], num: con['proNum'],type:'con' }));
       const rootRels = Array.from(Object.keys(rootRelMap)).map((rel) => ({ source: rel.split("-")[0], target: rel.split("-")[1], weight: rootRelMap[rel] }));
+
+      // proConRels.forEach(pro=>{
+      //   nodeList.push({id:pro['proId'],type:'pro',order:pro['order']});
+      //   pro['concepts'].forEach(pc=>{
+      //     edgeList.push({
+      //       source: pc,
+      //       target: pro['proId'],
+      //       weight: 1,
+      //     })
+      //   })
+      // })
 
       this.nodeList = nodeList;
       this.edgeList = edgeList;
@@ -453,15 +467,15 @@ export default {
       
 
 
-      let consG = groups.append("g").attr("id", "consG").attr("width", width).attr("height", 800)
+      let consG = groups.append("g").attr("id", "consG").attr("width", width).attr("height", 900)
         // .attr("transform", `translate(${width - 300},0)`);;
-      let netG = svg.append("g").attr("id", "netRootG").attr("width", width - 200).attr("height", 800)
-          .attr("transform", `translate(${width - 800},0)`);
+      let netG = svg.append("g").attr("id", "netRootG").attr("width", width - 0).attr("height", 900)
+          .attr("transform", `translate(${0},0)`);
       // let graphG = graphs.append("g").attr("id", "relG").attr("width", width).attr("height", height);
       let rootRelG = groups.append("g").attr("id", "rootRelG").attr("width", width).attr("height", height)
-        .attr("transform", `translate(0,1000)`);;
+        .attr("transform", `translate(0,900)`);;
       let graphG = groups.append("g").attr("id", "graphG").attr("width", width).attr("height", height)
-        .attr("transform", `translate(0,1000)`);;
+        .attr("transform", `translate(0,900)`);;
       const backArea = rootRelG.append("rect")
         .attr("x", 0).attr("y", 0)
         .attr("width", width).attr("height", height)
@@ -608,23 +622,23 @@ export default {
           .transition().duration(500)
           .attr("r", 10);
       }
-      concepts.forEach((cons, idx) => {
-        let x = 10;
-        let y = (idx + 1) * gapY;
-        let r = 10;
-        let fill = 'grey';
-        let opacity = 1;
-        let stroke = 'white';
-        let width = 1;
-        let idName = `consCircle ${cons['id']}`
-        let circle = tools.drawCircle(consG, x, y, r, fill, opacity, stroke, width, `ConsCircle`, idName);
-        circle.datum({ originalX: x, originalY: y, id: cons['id'] }) // 使用datum存储数据
-          .call(dragHandler)
-        let tx = x + r * 2;
-        let ty = y + r;
-        let txts = cons['name'];
-        tools.drawTxt(consG, tx, ty, txts, "grey", 18, `ConsText_${idx}`, "left");//属性文字
-      });
+      // concepts.forEach((cons, idx) => {
+      //   let x = 10;
+      //   let y = (idx + 1) * gapY;
+      //   let r = 10;
+      //   let fill = 'grey';
+      //   let opacity = 1;
+      //   let stroke = 'white';
+      //   let width = 1;
+      //   let idName = `consCircle ${cons['id']}`
+      //   let circle = tools.drawCircle(consG, x, y, r, fill, opacity, stroke, width, `ConsCircle`, idName);
+      //   circle.datum({ originalX: x, originalY: y, id: cons['id'] }) // 使用datum存储数据
+      //     .call(dragHandler)
+      //   let tx = x + r * 2;
+      //   let ty = y + r;
+      //   let txts = cons['name'];
+      //   tools.drawTxt(consG, tx, ty, txts, "grey", 18, `ConsText_${idx}`, "left");//属性文字
+      // });
       // this.drawConsNet();
       // this.drawRootCon();
     },
@@ -872,13 +886,20 @@ export default {
           return `c_${d.type}`
         })
         .attr("cx", function (d) {
-          // if (d.type == "problem")
-          //   _this.drawEntityProblem(entG, d.x, d.y, `astCon_${d.id}`);
-          // else if (d.type == "concept")
-          _this.drawEntityConcept(entG, d.x, d.y, `astCon_${d.id}`);
+
+          if (d.type == "pro") {
+            _this.drawEntityProblem(entG, d.x, d.y, `astPro_${d.id}`);
+            return d.order * 20
+          }
+          else if (d.type == "con")
+            _this.drawEntityConcept(entG, d.x, d.y, `astCon_${d.id}`);
           return d.x;
         })
-        .attr("cy", function (d) { return d.y })
+        .attr("cy", function (d) {
+          if (d.type == "pro")
+            return 120
+          return d.y;
+        })
         .attr("r", 25)
         .attr("opacity", "0")
         .call(drags())
@@ -944,14 +965,21 @@ export default {
           esx = esx > svgWidth - rSize ? svgWidth - rSize : esx;
           if (esy < rSize) esy = rSize;
           esy = esy > svgHeight - rSize ? svgHeight - rSize : esy;
-
-          _this.updateEntity(entG, esx, esy, `astCon_${d.id}`)
+          if (d.type == "con")
+            _this.updateEntity(entG, esx, esy, `astCon_${d.id}`)
+          if (d.type == "pro"){
+            d.x = 50*d.order;
+            _this.updateEntity(entG, esx, esy, `astPro_${d.id}`)
+          }
 
           if (d.x < rSize) return rSize;
           return d.x > svgWidth - rSize ? svgWidth - rSize : d.x
         })
           .attr("cy", (d) => {
-            if (d.y < rSize) return rSize
+            if (d.y < rSize) return rSize;
+            if (d.type == "pro"){
+              d.y = 120; 
+            }
             return d.y > svgHeight - rSize ? svgHeight - rSize : d.y
           });
 
@@ -982,7 +1010,14 @@ export default {
       });
 
     },
-
+    calcRegularPolygonPoints(num, x, y, r) {
+      let arcStep = Math.PI * 2 / num;
+      let points = [];
+      for (let i = 0; i < num; i++) {
+        points.push([x - Math.sin(arcStep * i) * r, y + Math.cos(arcStep * i) * r])
+      }
+      return points
+    },
     drawEntityConcept(svg, x, y, pId) {
       const _this = this;
       d3.select("#" + pId).remove();
@@ -1182,6 +1217,19 @@ export default {
       // 初始化
       updatendProgress((conceptData['dif']));
     },
+    
+    drawEntityProblem(svg, x, y, pId) {
+      const _this = this;
+      d3.select("#" + pId).remove();
+      let entG = svg.append("g").attr("id", pId);
+      entG.attr("transform", `translate(${x},${y})`);
+      let rSize = 10;
+      let attrLen = 3;
+      let points = _this.calcRegularPolygonPoints(attrLen, 0, 0, rSize);
+      let entColor = 'green'
+      let entPolygon = tools.drawPolygon(entG, points, `pro_${pId}`,0.3, '5px', entColor, entColor,'netEntPro');
+
+    },
     updateEntity(svg, x, y, pId) {
       const _this = this;
       let entG = svg.select(`#${pId}`);
@@ -1210,7 +1258,7 @@ export default {
     this.$bus.$on('proConNet', (val) => {
       _this.proConNet = val[0];
       _this.delConceptTree = val[1];
-
+      _this.proConRels = val[2];
     });
 
     this.$bus.$on('ConceptTree', (val) => {

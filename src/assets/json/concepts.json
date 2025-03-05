@@ -37,7 +37,7 @@
   },
   "id": "1-3",
   "name": "字符型",
-  "layout": 0,
+  "layout": 1,
   "gpt": "0",
   "father": "1",
   "son": []
@@ -48,7 +48,7 @@
   },
   "id": "1-3-1",
   "name": "ASCII码",
-  "layout": 0,
+  "layout": 2,
   "gpt": "0",
   "father": "1",
   "son": []
@@ -59,7 +59,7 @@
   },
   "id": "1-4",
   "name": "枚举型",
-  "layout": 0,
+  "layout": 1,
   "gpt": "0",
   "father": "1",
   "son": []
@@ -70,7 +70,7 @@
   },
   "id": "1-5",
   "name": "布尔型",
-  "layout": 0,
+  "layout": 1,
   "gpt": "0",
   "father": "1",
   "son": []
@@ -81,7 +81,7 @@
   },
   "id": "1-6",
   "name": "进制转换",
-  "layout": 0,
+  "layout": 1,
   "gpt": "0",
   "father": "1",
   "son": []
@@ -92,7 +92,7 @@
   },
   "id": "1-8",
   "name": "变量",
-  "layout": 0,
+  "layout": 1,
   "gpt": "0",
   "father": "1",
   "son": []
@@ -103,7 +103,7 @@
   },
   "id": "1-8-1",
   "name": "声明和初始化",
-  "layout": 0,
+  "layout": 2,
   "gpt": "1",
   "father": "1-8",
   "son": []
@@ -114,7 +114,7 @@
   },
   "id": "1-8-2",
   "name": "赋值",
-  "layout": 0,
+  "layout": 2,
   "gpt": "1",
   "father": "1-8",
   "son": []
@@ -125,7 +125,7 @@
   },
   "id": "1-7",
   "name": "输入输出",
-  "layout": 0,
+  "layout": 1,
   "gpt": "0",
   "father": "1",
   "son": []
@@ -367,7 +367,7 @@
   },
   "id": "4-2",
   "name": "while循环",
-  "layout": 0,
+  "layout": 1,
   "gpt": "0",
   "father": "4",
   "son": []
@@ -378,7 +378,7 @@
   },
   "id": "4-3",
   "name": "break/continue",
-  "layout": 0,
+  "layout": 1,
   "gpt": "1",
   "father": "4",
   "son": []
@@ -389,7 +389,7 @@
   },
   "id": "4-4",
   "name": "do-while",
-  "layout": 0,
+  "layout": 1,
   "gpt": "1",
   "father": "4",
   "son": []
@@ -400,7 +400,7 @@
   },
   "id": "4-5",
   "name": "跳转",
-  "layout": 0,
+  "layout": 1,
   "gpt": "1",
   "father": "4",
   "son": []
@@ -444,7 +444,7 @@
   },
   "id": "5-2-1",
   "name": "返回值",
-  "layout": 1,
+  "layout": 2,
   "gpt": "0",
   "father": "5-2",
   "son": []
@@ -455,7 +455,7 @@
   },
   "id": "5-2-2",
   "name": "变量的作用域与生存期",
-  "layout": 1,
+  "layout": 2,
   "gpt": "0",
   "father": "5-2",
   "son": []
@@ -488,7 +488,7 @@
   },
   "id": "6-1",
   "name": "一维数组",
-  "layout": 0,
+  "layout": 1,
   "gpt": "0",
   "father": "6",
   "son": []
@@ -499,7 +499,7 @@
   },
   "id": "6-1-1",
   "name": "定义与初始化",
-  "layout": 0,
+  "layout": 2,
   "gpt": "1",
   "father": "6-1",
   "son": []
@@ -510,7 +510,7 @@
   },
   "id": "6-1-2",
   "name": "使用",
-  "layout": 0,
+  "layout": 2,
   "gpt": "1",
   "father": "6-1",
   "son": []
@@ -532,7 +532,7 @@
   },
   "id": "6-2-1",
   "name": "定义与初始化",
-  "layout": 0,
+  "layout": 2,
   "gpt": "1",
   "father": "6-2",
   "son": []
@@ -543,7 +543,7 @@
   },
   "id": "6-2-2",
   "name": "使用",
-  "layout": 0,
+  "layout": 2,
   "gpt": "1",
   "father": "6-2",
   "son": []
@@ -576,7 +576,7 @@
   },
   "id": "7-1",
   "name": "指针定义与初始化",
-  "layout": 0,
+  "layout": 1,
   "gpt": "1",
   "father": "7",
   "son": []
@@ -587,7 +587,7 @@
   },
   "id": "7-2",
   "name": "指针数组",
-  "layout": 0,
+  "layout": 1,
   "gpt": "1",
   "father": "7",
   "son": []
@@ -598,7 +598,7 @@
   },
   "id": "7-3",
   "name": "指针运算",
-  "layout": 0,
+  "layout": 1,
   "gpt": "1",
   "father": "7",
   "son": []
