@@ -362,9 +362,10 @@ export default {
       gapX: 50,
       currentNetData: [],
       proConNet: [],
-      proConRels:[],
+      proConRels: [],
       edgeList: [],
       nodeList: [],
+      curProConNet: [],
       curEdgeList: [],
       curNodeList: [],
       rootConData: [],
@@ -373,10 +374,18 @@ export default {
       netG: '',
       rootRels: [],
       rootConDatas: [],
+      curRootConDatas:[],
       rootNumMax: 50,
       graphGTransformK: 1,
       graphGTransformX: 1,
       graphGTransformY: 1,
+      tixings:['选择题','判断题','填空题','编程题'],
+      txColors:[
+        'rgb(111, 139, 223)',
+        'rgb(244, 244, 208)',
+        'rgb(254, 156, 156)',
+        'rgb(125, 192, 208)'
+      ]
     };
   },
 
@@ -386,6 +395,12 @@ export default {
     proConNet(val) {
       this.delConsNet();
       // this.delRootConData();
+    },
+    curProConNet: {
+      deep: true,
+      handler() {
+        this.delCurConsNet()
+      }
     }
   },
   methods: {
@@ -396,13 +411,67 @@ export default {
       let relWeightMax = 0;
       let rootRelMap = {};
       let rootConDatas = tools.deepClone(this.delConceptTree);
+      // console.log(111111, proConNet,proConRels,rootConDatas)
+      proConNet.forEach(concept => {
+        let conceptId = concept['conceptId'];
+        let rootId = conceptId.split("-")[0];
+        let rootConData = rootConDatas.find((c) => { return c['id'] == rootId });
+        rootConData['deepI'] += concept['proNum'];
+        // rootConData['dif']+=concept['difficulty'];
+
+        concept.rel.forEach(relation => {
+          let relRootId = relation['id'].split("-")[0];
+          if (relRootId != rootId) {
+            let rootRelKey = relRootId < rootId ? `${relRootId}-${rootId}` : `${rootId}-${relRootId}`;
+            if (!rootRelMap[rootRelKey]) {
+              rootRelMap[rootRelKey] = relation.num;
+            }
+            else {
+              rootRelMap[rootRelKey] += relation.num;
+            }
+          }
+          else{
+            rootConData['bandI'] += relation.num;
+          }
+
+
+          if (relation.num > relWeightMax) { relWeightMax = relation.num; };
+          edgeList.push({
+            source: conceptId,
+            target: relation.id,
+            weight: relation.num,
+          });
+        });
+      });
+      const nodeList = Array.from(proConNet).map(con => ({ id: con['conceptId'], dif: con['difficulty'], num: con['proNum'], type: 'con' }));
+      const rootRels = Array.from(Object.keys(rootRelMap)).map((rel) => ({ source: rel.split("-")[0], target: rel.split("-")[1], weight: rootRelMap[rel] }));
+
+
+      this.nodeList = nodeList;
+      this.edgeList = edgeList;
+      this.curProConNet = proConNet;
+      this.curNodeList = nodeList;
+      this.curEdgeList = edgeList;
+      this.rootConDatas = rootConDatas;
+      this.curRootConDatas = rootConDatas;
+      // console.log(222,rootConDatas)
+      this.rootRels = rootRels;
+      this.drawConsNet();
+      this.drawRootCon();
+    },
+    delCurConsNet() {
+      let proConNet = this.curProConNet;
+      let rootConDatas = tools.deepClone(this.delConceptTree);
+      let relWeightMax = 0;
+      let rootRelMap = {};
+      console.log('del',proConNet)
       proConNet.forEach(concept => {
         let conceptId = concept['conceptId'];
 
         let rootId = conceptId.split("-")[0];
         let rootConData = rootConDatas.find((c) => { return c['id'] == rootId });
         rootConData['deepI'] += concept['proNum'];
-        // rootConData['dif']+=concept['difficulty'];
+        rootConData['dif']+=concept['difficulty'];
 
         concept.rel.forEach(relation => {
           let relRootId = relation['id'].split("-")[0];
@@ -416,37 +485,15 @@ export default {
               rootRelMap[rootRelKey] += relation.num;
             }
           }
-
-
+          else{
+            rootConData['bandI'] += relation.num;
+          }
           if (relation.num > relWeightMax) { relWeightMax = relation.num; };
-          edgeList.push({
-            source: conceptId,
-            target: relation.id,
-            weight: relation.num,
-          });
         });
       });
-      const nodeList = Array.from(proConNet).map(con => ({ id: con['conceptId'], dif: con['difficulty'], num: con['proNum'],type:'con' }));
-      const rootRels = Array.from(Object.keys(rootRelMap)).map((rel) => ({ source: rel.split("-")[0], target: rel.split("-")[1], weight: rootRelMap[rel] }));
 
-      // proConRels.forEach(pro=>{
-      //   nodeList.push({id:pro['proId'],type:'pro',order:pro['order']});
-      //   pro['concepts'].forEach(pc=>{
-      //     edgeList.push({
-      //       source: pc,
-      //       target: pro['proId'],
-      //       weight: 1,
-      //     })
-      //   })
-      // })
-
-      this.nodeList = nodeList;
-      this.edgeList = edgeList;
-      this.curNodeList = nodeList;
-      this.curEdgeList = edgeList;
-      this.rootConDatas = rootConDatas;
-      this.rootRels = rootRels;
-      this.drawConsNet();
+      console.log(222,this.rootConDatas,rootConDatas);
+      this.curRootConDatas = rootConDatas
       this.drawRootCon();
     },
 
@@ -464,13 +511,13 @@ export default {
       var defs = svg.append("defs");
 
       let groups = svg.append("g").attr("id", "groups").attr("width", width).attr("height", height);
-      
+
 
 
       let consG = groups.append("g").attr("id", "consG").attr("width", width).attr("height", 900)
-        // .attr("transform", `translate(${width - 300},0)`);;
+      // .attr("transform", `translate(${width - 300},0)`);;
       let netG = svg.append("g").attr("id", "netRootG").attr("width", width - 0).attr("height", 900)
-          .attr("transform", `translate(${0},0)`);
+        .attr("transform", `translate(${0},0)`);
       // let graphG = graphs.append("g").attr("id", "relG").attr("width", width).attr("height", height);
       let rootRelG = groups.append("g").attr("id", "rootRelG").attr("width", width).attr("height", height)
         .attr("transform", `translate(0,900)`);;
@@ -487,7 +534,7 @@ export default {
       // this.riverG = riverG;
       // this.matG = matG;
       this.consG = consG;
-      
+
       let graphGTransformX = _this.graphGTransformX;
       let graphGTransformY = _this.graphGTransformY;
       let graphGTransformK = _this.graphGTransformK;
@@ -514,7 +561,7 @@ export default {
           _this.graphGTransformK = graphGTransformK;
           consG.attr('transform', 'translate(' + (graphGTransformX) + ',' + (graphGTransformY) + ') scale(' + (graphGTransformK) + ')')
         });
-        svg.call(graphZoom)
+      svg.call(graphZoom)
     },
     update() {
       const _this = this;
@@ -674,14 +721,14 @@ export default {
         let stroke = 'rgba(200,200,200,.5)';
         let width = wScale(value);
         let idName = `line_${sourceName}_${targetName}`;
-        let updown =  (parseInt(rel['source']) + parseInt(rel['target'])) % 2 == 0 ? -1 : 1;
+        let updown = (parseInt(rel['source']) + parseInt(rel['target'])) % 2 == 0 ? -1 : 1;
         let sx = parseFloat(sBbox.x + sBbox.width / 2 + parseFloat(transformS[1])) + tranY;
-        let sy = parseFloat(sBbox.y + parseFloat(transformS[2]) + sBbox.height / 2+updown*sBbox.height / 3);
+        let sy = parseFloat(sBbox.y + parseFloat(transformS[2]) + sBbox.height / 2 + updown * sBbox.height / 3);
         let tx = parseFloat(tBbox.x + parseFloat(transformT[1]) + tBbox.width / 2);
-        let ty = parseFloat(tBbox.y + parseFloat(transformT[2]) + tBbox.height / 2+updown*tBbox.height / 3);
+        let ty = parseFloat(tBbox.y + parseFloat(transformT[2]) + tBbox.height / 2 + updown * tBbox.height / 3);
         let cx = (sx + tx) / 2;
         // let cy = (parseInt(rel['source']) + parseInt(rel['target'])) % 2 == 0 ? topH : (ty + sy + 20) / 2 + topH;
-        let cy = (ty + sy)/2 + (updown) * topH;
+        let cy = (ty + sy) / 2 + (updown) * topH;
         const pathData = lineGenerator([[sx, sy], [cx, cy], [tx, ty]]);
         tools.drawLine(relG, pathData, stroke, width, "", idName, "rootConRel");
         d3.select(`#${targetName}`).style("filter", "url(#coolShadow)")
@@ -705,13 +752,14 @@ export default {
       let topH = 150;
 
       let rootConDatas = this.rootConDatas;
+      let curRootConDatas = this.curRootConDatas;
       let rootRels = this.rootRels;
       let cFill = 'red';
-      const dimensions = ['bandI', 'deepI', 'dif', 'num','maxDif'];
+      const dimensions = ['bandI', 'deepI', 'dif', 'num', 'maxDif'];
       // let maxValues = [10,10,5,10,5];
-        // 计算最大值
+      // 计算最大值
       const maxValues = dimensions.reduce((acc, dim) => {
-        acc[dim] = d3.max(rootConDatas, d => d[dim]);
+        acc[dim] = Math.max(d3.max(rootConDatas, d => d[dim]),d3.max(curRootConDatas, d => d[dim]));
         return acc;
       }, {});
 
@@ -720,16 +768,17 @@ export default {
       const Compute_color = d3.interpolate("#fff", cFill);
 
       rootConDatas.forEach((rootCon, idx) => {
-        let x = (idx+0.5) * gapX;
+        let curRootCon = curRootConDatas[idx];
+        let x = (idx + 0.5) * gapX;
         let y = topH;
-        let r = 25//rScale(rootCon['num']);
-        let fill = Compute_color(color_linear(rootCon['dif']/rootCon['num']));
+        let r = 15//rScale(rootCon['num']);
+        let fill = Compute_color(color_linear(rootCon['dif'] / rootCon['num']));
         let opacity = 1;
         let stroke = 'white';
         let width = 1;
         let idName = `rootConCircle_${rootCon['id']}`;
         let tx = x;
-        let ty = y+150;
+        let ty = y + 150;
         let txts = rootCon['name'];
         tools.drawTxt(graphG, tx, ty, txts, "grey", 18, `rootConText_${idx}`, "middle");//属性文字
         const radius = 50;
@@ -737,13 +786,13 @@ export default {
         const angleSlice = (2 * Math.PI) / dimensions.length;
         // 创建半径比例尺
         const rScales = [];
-        dimensions.forEach((dim,idx) => {
-            // if (dim == '')
-              rScales.push(d3.scaleLinear()
-                .domain([0, maxValues[dim]])
-                .range([20, radius-5]))
+        dimensions.forEach((dim, idx) => {
+          // if (dim == '')
+          rScales.push(d3.scaleLinear()
+            .domain([0, maxValues[dim]])
+            .range([15, radius - 5]))
         })
-        
+
         // 绘制网格线
         const gridLevels = 5;
         for (let i = 0; i < gridLevels; i++) {
@@ -758,9 +807,10 @@ export default {
           graphG.append("line")
             .attr("x1", x)
             .attr("y1", y)
-            .attr("x2", x-Math.sin(angle) * radius)
-            .attr("y2", y+Math.cos(angle) * radius)
+            .attr("x2", x - Math.sin(angle) * radius)
+            .attr("y2", y + Math.cos(angle) * radius)
             .attr("class", "axis-line");
+
 
           // // // 添加维度标签
           // graphG.append("text")
@@ -784,19 +834,29 @@ export default {
           //     value: rootCon[dim]
           //   }))
           //   console.log('vvvv',values)
-            let rcPoints = [];
-            dimensions.forEach((dim,i)=>{
-              // if(dim == '')
-              let cr = rScales[i](rootCon[dim]);
-              rcPoints.push([x - Math.sin(angleSlice * i) * cr, y + Math.cos(angleSlice * i) * cr])
-            })
-            let rcIdName = `rootConPol_${idx}`;
-            let rcFill = 'red';
-            let rcClassName = 'rootConPol'
-            let rootConPol = tools.drawPolygon(graphG, rcPoints, rcIdName,0.5, 0, 'red', rcFill,rcClassName); 
-            
-            let circle = tools.drawCircle(graphG, x, y, r, fill, opacity, stroke, width, `rootConCircle`, `rootConCircleIn_${idx}`);
-            let circleB = tools.drawCircle(graphG, x, y, radius, fill, 0, stroke, width, `rootConCircle`, idName);
+          let rcPoints = [];
+          let rcCurPoints = [];
+          dimensions.forEach((dim, i) => {
+            // if(dim == '')
+            let cr = rScales[i](rootCon[dim]);
+            let crCur =  rScales[i](curRootCon[dim]);
+            rcPoints.push([x - Math.sin(angleSlice * i) * cr, y + Math.cos(angleSlice * i) * cr]);
+            rcCurPoints.push([x - Math.sin(angleSlice * i) * crCur, y + Math.cos(angleSlice * i) * crCur]);
+          })
+          let rcIdName = `rootConPol_${idx}`;
+          let rcFill = 'red';
+          let rcClassName = 'rootConPol'
+          let rootConPol = tools.drawPolygon(graphG, rcPoints, rcIdName, 1, 1, rcFill, 'rgba(0,0,0,0)', rcClassName);
+          let rootConPolB = tools.drawPolygon(graphG, rcPoints, `${rcIdName}_back`, .1, 5, rcFill, rcFill, rcClassName);
+
+          let rcCurIdName = `rootCurConPol_${idx}`;
+          let rcCurFill = 'blue';
+          let rcCurClassName = 'rootCurConPol'
+          let rootCurConPol = tools.drawPolygon(graphG, rcCurPoints, rcCurIdName, 1, 1, rcCurFill, 'rgba(0,0,0,0)', rcCurClassName);
+          let rootCurConPolB = tools.drawPolygon(graphG, rcCurPoints, `${rcCurIdName}_back`, .1, 5, rcCurFill, rcCurFill, rcCurClassName);
+
+          let circle = tools.drawCircle(graphG, x, y, r, fill, opacity, "grey", width, `rootConCircle`, `rootConCircleIn_${idx}`);
+          let circleB = tools.drawCircle(graphG, x, y, radius, fill, 0, stroke, width, `rootConCircle`, idName);
           // graphG.append("path")
           //   .attr("class", "radar-area")
           //   .attr("fill", "blue")
@@ -900,7 +960,7 @@ export default {
             return 120
           return d.y;
         })
-        .attr("r", 25)
+        .attr("r", 5)
         .attr("opacity", "0")
         .call(drags())
         .on("click", function (d) {
@@ -967,8 +1027,8 @@ export default {
           esy = esy > svgHeight - rSize ? svgHeight - rSize : esy;
           if (d.type == "con")
             _this.updateEntity(entG, esx, esy, `astCon_${d.id}`)
-          if (d.type == "pro"){
-            d.x = 50*d.order;
+          if (d.type == "pro") {
+            d.x = 50 * d.order;
             _this.updateEntity(entG, esx, esy, `astPro_${d.id}`)
           }
 
@@ -977,8 +1037,8 @@ export default {
         })
           .attr("cy", (d) => {
             if (d.y < rSize) return rSize;
-            if (d.type == "pro"){
-              d.y = 120; 
+            if (d.type == "pro") {
+              d.y = 120;
             }
             return d.y > svgHeight - rSize ? svgHeight - rSize : d.y
           });
@@ -1018,7 +1078,269 @@ export default {
       }
       return points
     },
+
+
     drawEntityConcept(svg, x, y, pId) {
+      const _this = this;
+      d3.select("#" + pId).remove();
+      let entG = svg.append("g").attr("id", pId);
+      entG.attr("transform", `translate(${x},${y})`);
+      let cFill = 'blue';
+      let cOpacity = 1;
+      let cStroke = 'white';
+      let cWidth = 1;
+      let conceptDataOri = this.concepts.find((con) => { return con['id'] == pId.split("_")[1] });
+      let conceptData = this.nodeList.find((con) => { return con['id'] == pId.split("_")[1] });
+      const minRadius = 8;  // 最小半径
+      const maxRadius = 28; // 最大半径
+      const rScale = d3.scaleLinear().domain([0, _this.maxNum]).range([minRadius, maxRadius]);
+      let r = rScale(conceptData['num'])
+      const color_linear = d3.scaleLinear().domain([0, _this.maxDif]).range([0, 1]);
+      const Compute_color = d3.interpolate("#fff", cFill);
+      let fill = Compute_color(color_linear(conceptData['dif']))
+      let circle = tools.drawCircle(entG, 0, 0, r, fill, cOpacity, cStroke, cWidth, `entNetCircle`, `entNetCircle_${pId}`);
+      // drawTools.drawCircle(entG, 0, 0, 10, "red", 1, 1, 1, 'entNetCircle', pId);
+      tools.drawTxt(entG, 0, 80, conceptDataOri['name'], "black", 18, `netConsText_${pId}`, "middle");//属性文字
+      // tools.drawTxt(entG, 0, 0, txts, "grey", 18, `ConsText_${idx}`, "left");//属性文字
+
+      const width = 50, height = 60;
+      const margin = { top: 10, right: 0, bottom: 0, left: -width / 2 - 25 };
+
+      const center = { x: 0, y: 0 };
+
+      // 创建比例尺（角度0-2π对应数值0-100）
+      const slAngleScale = d3.scaleLinear()
+        .domain([0, _this.maxNum])
+        .range([0, 2 * Math.PI]);
+
+      const slRadiusScale = d3.scaleLinear()
+        .domain([0, _this.maxNum])
+        .range([minRadius, maxRadius]);
+
+      // 创建轨道容器
+      const slTrack = entG.append("path")
+        .classed("track", true)
+        .attr("transform", `translate(${center.x},${center.y})`)
+        .attr("fill", "#f0f0f0");
+
+      // 创建进度条
+      const slProgress = entG.append("path")
+        .classed("progress", true)
+        .attr("transform", `translate(${center.x},${center.y})`)
+        .attr("fill", "#2196F3");
+
+      // 创建手柄
+      const slHandle = entG.append("circle")
+        .classed("handle", true)
+        .attr("r", 5)
+        .attr("fill", "#FF9800");
+
+      
+
+      // ---------------------------------------------
+      let Compute_colors = [];
+      let txs = this.tixings;
+      txs.forEach((tx,i)=>{
+        Compute_colors.push(d3.interpolate("#fff", _this.txColors[i]))
+      })
+      let tixingData = [
+        { score: Math.floor(Math.random() * 100) + 1, difficulty: Math.floor(Math.random()) + 1},
+        { score: Math.floor(Math.random() * 100) + 1, difficulty: Math.floor(Math.random() ) + 1},
+        { score: Math.floor(Math.random() * 100) + 1, difficulty: Math.floor(Math.random() ) + 1},
+        { score: Math.floor(Math.random() * 100) + 1, difficulty: Math.floor(Math.random() ) + 1}
+      ];
+      // let curR = 
+      const maxDRadius = r+30; // 最大半径
+
+      // 计算比例因子
+      const maxScore = 100;
+      const scaleFactor = maxDRadius / maxScore;
+      
+      // 计算每个扇形的角度
+      const angleStep = (2 * Math.PI) / tixingData.length;
+      tixingData.forEach((d, i) => {
+        d.startAngle = i * angleStep - Math.PI / 2; // 从顶部开始
+        d.endAngle = (i + 1) * angleStep - Math.PI / 2;
+        d.midAngle = (d.startAngle + d.endAngle) / 2;
+      });
+
+      // 创建弧生成器
+      const arc = d3.arc()
+        .innerRadius(r+10)
+        .outerRadius(d => r+10+d.score * scaleFactor)
+        .startAngle(d => d.startAngle)
+        .endAngle(d => d.endAngle);
+      // 绘制扇形
+      let g = entG.append('g')
+      let paths = g.selectAll("path")
+        .data(tixingData)
+        .join("path")
+        .attr("d", arc)
+        .attr("fill", (d, i) => Compute_colors[i](color_linear(d.difficulty)))
+        .attr("stroke", "grey")
+        .attr("stroke-width", 1)
+        .on('click',(e,d)=>{
+          d.difficulty+=1;
+          if (d.difficulty>_this.maxDif)
+          d.difficulty = 1;
+          paths.attr("fill", (d, i) => Compute_colors[i](color_linear(d.difficulty)))
+        })
+        ;
+
+      // 添加高度手柄
+      let handles = g.selectAll("circle.handle")
+        .data(tixingData)
+        .join("circle")
+        .attr("class", "handle")
+        .attr("r", 6)
+        .attr("fill", "white")
+        .attr("stroke", "black")
+        .attr("stroke-width", 2)
+        .attr("cx", d => (20+d.score * scaleFactor) * Math.cos(d.midAngle - Math.PI / 2))
+        .attr("cy", d => (20+d.score * scaleFactor) * Math.sin(d.midAngle - Math.PI / 2))
+        .call(d3.drag()
+          .on("drag", function (event, d) {
+            // const [x, y] = d3.pointer(event);
+            let x = event.x;
+            let y = event.y;
+            const radius = Math.sqrt(x * x + y * y);
+            const clampedRadius = Math.max(0, Math.min(radius, maxDRadius));
+
+            // 更新分数
+            d.score = clampedRadius / scaleFactor;
+
+            // 更新扇形路径
+            paths.attr("d", arc);
+
+            // 更新手柄位置
+            d3.select(this)
+              .attr("cx", (clampedRadius + 20) * Math.cos(d.midAngle - Math.PI / 2))
+              .attr("cy", (clampedRadius + 20) * Math.sin(d.midAngle - Math.PI / 2));
+          })
+        );
+      // 添加角度调整手柄
+      let angleHandles = g.selectAll("circle.angle-handle")
+        .data(tixingData)
+        .join("circle")
+        .attr("class", "handle")
+        .attr("r", 6)
+        .attr("cx", d => (maxDRadius) * Math.cos(d.endAngle - Math.PI / 2))
+        .attr("cy", d => (maxDRadius) * Math.sin(d.endAngle - Math.PI / 2))
+        .call(d3.drag()
+          .on("drag", (event, d)=> {
+            const i = tixingData.indexOf(d); // 获取当前数据项的索引
+            // 获取相对于圆心(g元素)的坐标
+            let x = event.x;
+            let y = event.y;
+            // 计算当前角度
+            const theta = Math.atan2(y, x) + Math.PI/2;
+            // console.log('dsd',tixingData,d,i,tixingData[i])
+            // 限制最小角度差（防止扇形角度为负）
+            const prevAngle = tixingData[i].startAngle;
+            const nextAngle = tixingData[(i + 2) % tixingData.length].endAngle;
+            if (Math.abs(theta - prevAngle) < 0.1 ||
+              Math.abs(nextAngle - theta) < 0.1) return;
+
+            // 更新当前扇形结束角度和下个扇形开始角度
+            tixingData[i].endAngle = theta;
+            tixingData[(i + 1) % tixingData.length].startAngle = theta;
+
+            // 更新所有扇形的中点角度
+            tixingData.forEach(d => d.midAngle = (d.startAngle + d.endAngle) / 2);
+
+            // 更新所有图形元素
+            paths.attr("d", arc);
+            handles.attr("cx", d => (currentRadius+d.score * scaleFactor) * Math.cos(d.midAngle - Math.PI / 2))
+              .attr("cy", d => (currentRadius+d.score * scaleFactor) * Math.sin(d.midAngle - Math.PI / 2));
+            angleHandles.attr("cx", d => (currentRadius + 20) * Math.cos(d.endAngle - Math.PI / 2))
+              .attr("cy", d => (currentRadius + 20) * Math.sin(d.endAngle - Math.PI / 2));
+          })
+        );// 更新函数
+      function updateslProgress(value) {
+        value = parseInt(value)
+        const currentAngle = slAngleScale(value);
+        const currentRadius = slRadiusScale(value);
+
+        d3.select(`#entNetCircle_${pId}`).attr("r", rScale(value));
+        _this.curProConNet.find((c)=>{return c['conceptId'] == pId.split("_")[1]})['proNum'] = value;
+        let oriCon = _this.curProConNet.find((c)=>{return c['conceptId'] == pId.split("_")[1]})
+        // console.log(_this.curProConNet,value,pId,oriCon)
+        // 更新轨道（完整圆形）
+        slTrack.attr("d", d3.arc()
+          .innerRadius(currentRadius)
+          .outerRadius(currentRadius + 8)
+          .startAngle(0)
+          .endAngle(2 * Math.PI)
+          .cornerRadius(8)());
+
+        // 更新进度条（当前进度）
+        slProgress.attr("d", d3.arc()
+          .innerRadius(currentRadius)
+          .outerRadius(currentRadius + 8)
+          .startAngle(-Math.PI / 2) // 从顶部开始
+          .endAngle(-Math.PI / 2 + currentAngle)
+          .cornerRadius(8)());
+
+        // 创建弧生成器
+        const arc = d3.arc()
+          .innerRadius(currentRadius + 10)
+          .outerRadius(d => currentRadius + 10 + d.score * scaleFactor)
+          .startAngle(d => d.startAngle)
+          .endAngle(d => d.endAngle);
+        //更新扇形
+          paths = g.selectAll("path")
+        .attr("d", arc)
+
+        // 更新手柄位置
+        const [x, y] = polarToCartesian(
+          currentRadius + 4,
+          -Math.PI / 2 + currentAngle // 保持从顶部开始
+        );
+        slHandle.attr("cx", x + center.x).attr("cy", y + center.y);
+
+        //更新扇形手柄
+        handles.attr("cx", d => (currentRadius+d.score * scaleFactor) * Math.cos(d.midAngle - Math.PI / 2))
+          .attr("cy", d =>(currentRadius+ d.score * scaleFactor) * Math.sin(d.midAngle - Math.PI / 2));
+        angleHandles.attr("cx", d => (currentRadius + 20) * Math.cos(d.endAngle - Math.PI / 2))
+          .attr("cy", d => (currentRadius + 20) * Math.sin(d.endAngle - Math.PI / 2));
+
+      }
+
+      // 极坐标转笛卡尔坐标
+      function polarToCartesian(radius, angle) {
+        return [
+          radius * Math.cos(angle - Math.PI / 2),
+          radius * Math.sin(angle - Math.PI / 2)
+        ];
+      }
+
+      // 拖拽交互
+      const slDrag = d3.drag()
+        .on("drag", function (event) {
+          const dx = event.x - center.x;
+          const dy = event.y - center.y;
+          let angle = Math.atan2(dy, dx) - Math.PI;
+
+          // 转换到0-2π范围
+          if (angle < 0) angle += 2 * Math.PI;
+
+          // 计算当前值
+          const currentValue = slAngleScale.invert(angle);
+          const clampedValue = Math.max(0, Math.min(100, currentValue));
+
+          updateslProgress(clampedValue);
+          d3.select("#value-display").text(`${Math.round(clampedValue)}%`);
+        });
+
+      slHandle.call(slDrag);
+
+      // 初始化
+      // console.log(111,conceptData['num'],rScale(conceptData['num']))
+      updateslProgress((conceptData['num']));
+
+    },
+
+    drawEntityConcept1(svg, x, y, pId) {
       const _this = this;
       d3.select("#" + pId).remove();
       let entG = svg.append("g").attr("id", pId);
@@ -1031,7 +1353,7 @@ export default {
       let conceptData = this.nodeList.find((con) => { return con['id'] == pId.split("_")[1] });
       const minRadius = 20;  // 最小半径
       const maxRadius = 30; // 最大半径
-      const rScale = d3.scaleLinear().domain([1, _this.maxNum]).range([minRadius-8, maxRadius-8]);
+      const rScale = d3.scaleLinear().domain([1, _this.maxNum]).range([minRadius - 8, maxRadius - 8]);
       let r = rScale(conceptData['num'])
       const color_linear = d3.scaleLinear().domain([0, _this.maxDif]).range([0, 1]);
       const Compute_color = d3.interpolate("#fff", cFill);
@@ -1081,23 +1403,23 @@ export default {
         d3.select(`#entNetCircle_${pId}`).attr("r", rScale(value));
         // 更新轨道（完整圆形）
         slTrack.attr("d", d3.arc()
-          .innerRadius(currentRadius - 8)
-          .outerRadius(currentRadius)
+          .innerRadius(currentRadius)
+          .outerRadius(currentRadius + 8)
           .startAngle(0)
           .endAngle(2 * Math.PI)
           .cornerRadius(8)());
 
         // 更新进度条（当前进度）
         slProgress.attr("d", d3.arc()
-          .innerRadius(currentRadius - 8)
-          .outerRadius(currentRadius)
+          .innerRadius(currentRadius)
+          .outerRadius(currentRadius + 8)
           .startAngle(-Math.PI / 2) // 从顶部开始
           .endAngle(-Math.PI / 2 + currentAngle)
           .cornerRadius(8)());
 
         // 更新手柄位置
         const [x, y] = polarToCartesian(
-          currentRadius-4,
+          currentRadius - 4,
           -Math.PI / 2 + currentAngle // 保持从顶部开始
         );
         slHandle.attr("cx", x + center.x).attr("cy", y + center.y);
@@ -1106,8 +1428,8 @@ export default {
       // 极坐标转笛卡尔坐标
       function polarToCartesian(radius, angle) {
         return [
-          radius * Math.cos(angle-Math.PI/2),
-          radius * Math.sin(angle-Math.PI/2)
+          radius * Math.cos(angle - Math.PI / 2),
+          radius * Math.sin(angle - Math.PI / 2)
         ];
       }
 
@@ -1133,7 +1455,7 @@ export default {
 
       // 初始化
       updateslProgress(rScale(conceptData['num']));
-     
+
 
       // 创建比例尺（角度0-2π对应数值0-100）
       const ndAngleScale = d3.scaleLinear()
@@ -1142,7 +1464,7 @@ export default {
 
       const ndRadiusScale = d3.scaleLinear()
         .domain([0, _this.maxDif])
-        .range([minRadius+8, maxRadius+8]);
+        .range([minRadius + 8, maxRadius + 8]);
 
       // 创建轨道容器
       const ndTrack = entG.append("path")
@@ -1165,22 +1487,22 @@ export default {
       // 更新函数
       function updatendProgress(value) {
         const currentAngle = ndAngleScale(value);
-        const currentRadius = minRadius+10//slRadiusScale();
+        const currentRadius = minRadius + 10//slRadiusScale();
 
-        
+
         d3.select(`#entNetCircle_${pId}`).attr("fill", Compute_color(color_linear(value)))
         // 更新轨道（完整圆形）
         ndTrack.attr("d", d3.arc()
-          .innerRadius(currentRadius - 8)
-          .outerRadius(currentRadius)
+          .innerRadius(currentRadius)
+          .outerRadius(currentRadius + 8)
           .startAngle(0)
           .endAngle(2 * Math.PI)
           .cornerRadius(8)());
 
         // 更新进度条（当前进度）
         ndProgress.attr("d", d3.arc()
-          .innerRadius(currentRadius - 8)
-          .outerRadius(currentRadius)
+          .innerRadius(currentRadius)
+          .outerRadius(currentRadius + 8)
           .startAngle(-Math.PI / 2) // 从顶部开始
           .endAngle(-Math.PI / 2 + currentAngle)
           .cornerRadius(8)());
@@ -1217,7 +1539,7 @@ export default {
       // 初始化
       updatendProgress((conceptData['dif']));
     },
-    
+
     drawEntityProblem(svg, x, y, pId) {
       const _this = this;
       d3.select("#" + pId).remove();
@@ -1227,7 +1549,7 @@ export default {
       let attrLen = 3;
       let points = _this.calcRegularPolygonPoints(attrLen, 0, 0, rSize);
       let entColor = 'green'
-      let entPolygon = tools.drawPolygon(entG, points, `pro_${pId}`,0.3, '5px', entColor, entColor,'netEntPro');
+      let entPolygon = tools.drawPolygon(entG, points, `pro_${pId}`, 0.3, '5px', entColor, entColor, 'netEntPro');
 
     },
     updateEntity(svg, x, y, pId) {

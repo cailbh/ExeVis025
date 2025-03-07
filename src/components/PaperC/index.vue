@@ -423,7 +423,7 @@ export default {
           let textG = document.getElementById(`paperConsTagText_${proItem.id}_${con}`);
             // console.log('yes',sourceName)
             // let tBbox = textG.getBBox();
-          console.log(textG.getBBox())
+          // console.log(textG.getBBox())
           let w = textG.getBBox().width;
           px+=w+10;
           let rect = tools.drawRect(svg, x, y, w, h, rx, fill, 1, stroke, opacity, idName, 'paperConsTag', '0')
