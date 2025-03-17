@@ -273,7 +273,8 @@ router.get('/api/problem/problemById', (req, res) => {
                 "type": 1,
                 "id": 1,
                 "content": 1,
-                "difficulty":1
+                "difficulty":1,
+                "score":1
                 // "cnt": {"$size": '$seq'}
             }
         },

@@ -11,69 +11,88 @@ function generateConceptStats(problemIds) {
   // 第一步：构建问题-概念映射
   const problemConcepts = new Map();
   conceptLinks.forEach(({ problem, conceptId }) => {
-      if (!problemIds.includes(problem)) return;
-      if (!problemConcepts.has(problem)) {
-          problemConcepts.set(problem, new Set());
-      }
-      problemConcepts.get(problem).add(conceptId);
+    if (!problemIds.includes(problem)) return;
+    if (!problemConcepts.has(problem)) {
+      problemConcepts.set(problem, new Set());
+    }
+    problemConcepts.get(problem).add(conceptId);
   });
 
-    console.log('connn',problemConcepts)
+  console.log('connn', problemConcepts)
   // 第二步：构建概念统计信息
   const conceptStats = new Map();
   let proConRels = [];
   // 遍历所有选中的问题
-  let idx=0;
+  let idx = 0;
   problemConcepts.forEach((concepts, problemId) => {
-      const problem = problemMap.get(problemId);
-      // console.log(11111,problemMap,problem,concepts, problemId,conceptList)
-      if (!problem) return;
-      proConRels.push({proId:problemId,concepts:concepts,order:idx})
-      idx+=1;
-      const conceptList = Array.from(concepts);
-      
-      // 更新每个概念的统计信息
-      const rootCons = new Map()
-      conceptList.forEach(conceptId => {
-        let rootId = conceptId.split("-")[0];
-        if(!rootCons.has(rootId)){
-          rootCons.set(rootId,problem['difficulty'])
+    const problem = problemMap.get(problemId);
+    // console.log(11111,problemMap,problem,concepts, problemId,conceptList)
+    if (!problem) return;
+    proConRels.push({ proId: problemId, concepts: concepts, order: idx })
+    idx += 1;
+    const conceptList = Array.from(concepts);
+
+    // 更新每个概念的统计信息
+    const rootCons = new Map()
+    conceptList.forEach(conceptId => {
+      let rootId = conceptId.split("-")[0];
+      if (!rootCons.has(rootId)) {
+        rootCons.set(rootId, problem['difficulty'])
+      }
+      if (!conceptStats.has(conceptId)) {
+        conceptStats.set(conceptId, {
+          totalDifficulty: 0,
+          proNum: 0,
+          relations: new Map(),
+          types:{'tp1':{'score':0,'num':0,'difficulty':0,'arr':[]},'tp2':{'score':0,'num':0,'difficulty':0,'arr':[]},'tp3':{'score':0,'num':0,'difficulty':0,'arr':[]},'tp4':{'score':0,'num':0,'difficulty':0,'arr':[]}}
+        });
+      }
+      const stat = conceptStats.get(conceptId);
+      stat.totalDifficulty += problem.difficulty;
+      stat.proNum += 1;
+      let types = {'tp1':['MULTIPLE_CHOICE'],'tp2':['TRUE_OR_FALSE'],'tp3':['FILL_IN_THE_BLANK'],'tp4':['CODE_COMPLETION', 'PROGRAMMING']}
+      let cType = '';
+      let proType = problem['type'];
+      let jg = 0
+      Object.keys(types).forEach(t=>{
+        if(types[t].indexOf(proType)>=0){
+        // console.log(t,types[t].indexOf(proType),proType,t)
+          stat.types[t].score+=problem['score']
+          stat.types[t].num+=1;
+          stat.types[t].difficulty+=problem['difficulty']
+          jg =1 
         }
-          if (!conceptStats.has(conceptId)) {
-              conceptStats.set(conceptId, {
-                  totalDifficulty: 0,
-                  proNum: 0,
-                  relations: new Map()
-              });
-          }
-          const stat = conceptStats.get(conceptId);
-          stat.totalDifficulty += problem.difficulty;
-          stat.proNum += 1;
-      });
-      
-      conTreeJson.forEach(con=>{
-        if(rootCons.get(con['id'])){
-          con.num += 1;
-          con.dif += rootCons.get(con['id']);
-        }
-        // conTreeJson.find(c=>{ return c['id'] == rId})['num'] = 
       })
-      // 更新概念间关系
-      conceptList.forEach(source => {
-          conceptList.forEach(target => {
-              if (source === target) return;
-              const stat = conceptStats.get(source);
-              stat.relations.set(target, (stat.relations.get(target) || 0) + 1);
-          });
+        if(jg==0){
+          console.log(proType)
+        }
+      // console.log(stat)
+    });
+
+    conTreeJson.forEach(con => {
+      if (rootCons.get(con['id'])) {
+        con.num += 1;
+        con.dif += rootCons.get(con['id']);
+      }
+      // conTreeJson.find(c=>{ return c['id'] == rId})['num'] = 
+    })
+    // 更新概念间关系
+    conceptList.forEach(source => {
+      conceptList.forEach(target => {
+        if (source === target) return;
+        const stat = conceptStats.get(source);
+        stat.relations.set(target, (stat.relations.get(target) || 0) + 1);
       });
+    });
   });
   // 第三步：格式转换
   return [Array.from(conceptStats.entries()).map(([conceptId, stat]) => ({
-      conceptId,
-      difficulty: stat.proNum > 0 ? stat.totalDifficulty / stat.proNum : 0,
-      proNum: stat.proNum,
-      rel: Array.from(stat.relations.entries()).map(([id, num]) => ({ id, num }))
-  })),conTreeJson,proConRels]
+    conceptId,
+    difficulty: stat.proNum > 0 ? stat.totalDifficulty / stat.proNum : 0,
+    proNum: stat.proNum,
+    rel: Array.from(stat.relations.entries()).map(([id, num]) => ({ id, num })),
+    types:stat.types
+  })), conTreeJson, proConRels]
 }
 
 
@@ -84,14 +103,14 @@ function arraysContainSameElements(array1, array2) {
 
   // 如果集合大小不同，直接返回 false
   if (set1.size !== set2.size) {
-      return false;
+    return false;
   }
 
   // 比较每个元素
   for (let item of set1) {
-      if (!set2.has(item)) {
-          return false;
-      }
+    if (!set2.has(item)) {
+      return false;
+    }
   }
 
   // 如果所有元素都相同，则返回 true
@@ -101,14 +120,14 @@ function arraysContainSameElements(array1, array2) {
 function arraysEqual(array1, array2) {
   // 如果数组长度不同，则直接返回 false
   if (array1.length !== array2.length) {
-      return false;
+    return false;
   }
 
   // 比较每个元素
   for (let i = 0; i < array1.length; i++) {
-      if (array1[i] !== array2[i]) {
-          return false;
-      }
+    if (array1[i] !== array2[i]) {
+      return false;
+    }
   }
 
   // 如果所有元素都相同，则返回 true
@@ -141,7 +160,7 @@ function drawTxt(svg, tx, ty, txts, fill, size, idName, anchor = '') {
   // .attr("transform", `rotate(${roat} ${tx} ${ty})`);
 }
 
-function  drawTxts(svg, x, y, width, txts, fill, fontsize = 12, idN,className) {
+function drawTxts(svg, x, y, width, txts, fill, fontsize = 12, idN, className) {
   let tx = x;
   let ty = y;
   let preWidth = 0;
@@ -149,9 +168,9 @@ function  drawTxts(svg, x, y, width, txts, fill, fontsize = 12, idN,className) {
   let pretext = '';
   txts = txts.split(" ");
   let g = svg.append("g")
-      .attr("id", `${idN}`)
+    .attr("id", `${idN}`)
   for (let t = 0; t < txts.length; t++) {
-    pretext +=" "+ txts[t];
+    pretext += " " + txts[t];
     let txt = g.append("text")
       .attr("y", ty)
       .attr("x", tx)
@@ -162,12 +181,12 @@ function  drawTxts(svg, x, y, width, txts, fill, fontsize = 12, idN,className) {
       .style("text-anchor", "middle")
       .text(pretext)
     let textWidth = document.getElementById(`${idN}_${t}`).getBBox().width;
-    if((textWidth>width)||(t==txts.length -1)){
+    if ((textWidth > width) || (t == txts.length - 1)) {
       pretext = '';
       tx = x;
       ty += 25;
     }
-    else{
+    else {
       txt.remove()
     }
     preWidth += textWidth;
@@ -208,21 +227,21 @@ function hasDuplicates(arr1, arr2) {
   }
   return false;
 }
-function drawImage(svg, w, h,x,y, url, idName,className) {
+function drawImage(svg, w, h, x, y, url, idName, className) {
   d3.select(`#${idName}`).remove();
   let img = svg.append("image")
-  .attr("class", className)
-  .attr("id", idName)
-  .attr("width", w)
-  .attr("height", h)
-  
-  .attr("x", x-w/2)
-  .attr("y", y-h/2)
-  // .attr("transform", "translate(" + x + "," + y + ")")
-  .attr("xlink:href", url);
+    .attr("class", className)
+    .attr("id", idName)
+    .attr("width", w)
+    .attr("height", h)
+
+    .attr("x", x - w / 2)
+    .attr("y", y - h / 2)
+    // .attr("transform", "translate(" + x + "," + y + ")")
+    .attr("xlink:href", url);
   return img;
 }
-function drawPolygon(svg, points, idName, opacity, strokeWidth, stroke, fill,className) {
+function drawPolygon(svg, points, idName, opacity, strokeWidth, stroke, fill, className) {
   d3.select(`#${idName}`).remove();
   let polygon = svg.append("polygon")
     .attr("points", points)
@@ -235,7 +254,7 @@ function drawPolygon(svg, points, idName, opacity, strokeWidth, stroke, fill,cla
     .attr("stroke", stroke)
   return polygon;
 }
-function transitionSvg(time,temp, x, y, w, h, fill, stroke, opacity, type) {
+function transitionSvg(time, temp, x, y, w, h, fill, stroke, opacity, type) {
   if (type == 'rect') {
     temp.transition()  // 开始执行动画
       .duration(time)     // 设置动画持续时间
@@ -281,8 +300,8 @@ function drawArc(svg, x, y, arcPath, stroke, fill, className, idName, stroke_das
   return arc;
 }
 
-function sleep(delay){
-  return new Promise(res=>setTimeout(res,delay));
+function sleep(delay) {
+  return new Promise(res => setTimeout(res, delay));
 };
 
 function time2seconds(time) {
@@ -309,14 +328,14 @@ function time2seconds2(time) {
   let s = lst[1];
   return parseInt(m) * 60 + parseInt(s);
 }
-function seconds2time(seconds,t=0) {
+function seconds2time(seconds, t = 0) {
   let m = Math.floor(seconds / 60);
   let s = seconds % 60;
   let h = Math.floor(m / 60);
   if (m < 10) m = '0' + m;
   if (h < 10) h = '0' + h;
   if (s < 10) s = '0' + s;
-  if(t==1){
+  if (t == 1) {
     return m + ":" + s;
   }
   return h + ":" + m + ":" + s;
@@ -332,15 +351,15 @@ function getRgbValue(str) {
   var arr = str.slice(4, str.length - 1).split(",")
   return arr;
 }
-function rgb2rgba(str){//加深
+function rgb2rgba(str) {//加深
   let reg = /^(rgb|RGB)/;
   if (!reg.test(str)) { return; };
   let a = 0.8;//加深或加亮
-  let BGcolur = 1;  
+  let BGcolur = 1;
   var arr = str.slice(4, str.length - 1).split(",")
-  var r = BGcolur * (1 - a) + arr[0] * a;  
-  var g = BGcolur * (1 - a) + arr[1] * a;  
-  var b = BGcolur * (1 - a) + arr[2] * a;  
+  var r = BGcolur * (1 - a) + arr[0] * a;
+  var g = BGcolur * (1 - a) + arr[1] * a;
+  var b = BGcolur * (1 - a) + arr[2] * a;
   return `rgb(${r},${g},${b})`;
 }
 
@@ -362,17 +381,17 @@ function getUniqueValues(arr, key) {
 }
 
 export default {
-  generateConceptStats:(problemIds)=>{
-    return generateConceptStats(problemIds) ;
+  generateConceptStats: (problemIds) => {
+    return generateConceptStats(problemIds);
   },
-  getUniqueValues:(arr, key)=>{
+  getUniqueValues: (arr, key) => {
     return getUniqueValues(arr, key);
   },
   deepClone: (obj) => { return deepClone(obj); },
-  arraysEqual:(array1, array2)=>{
+  arraysEqual: (array1, array2) => {
     return arraysEqual(array1, array2);
   },
-  arraysContainSameElements:(array1, array2) =>{
+  arraysContainSameElements: (array1, array2) => {
     return arraysContainSameElements(array1, array2);
   },
   time2seconds: (time) => {
@@ -381,8 +400,8 @@ export default {
   time2seconds2: (time) => {
     return time2seconds2(time);
   },
-  seconds2time: (seconds,t) => {
-    return seconds2time(seconds,t);
+  seconds2time: (seconds, t) => {
+    return seconds2time(seconds, t);
   },
   calcTriangle: (x, y, r) => {
     return calcTriangle(x, y, r);
@@ -396,17 +415,17 @@ export default {
   getVideoCanvas: (idName) => {
     return getVideoCanvas(idName);
   },
-  drawTxt: (svg, tx, ty, txts, fill, size, idName,anchor) => {
-    return drawTxt(svg, tx, ty, txts, fill, size, idName,anchor);
+  drawTxt: (svg, tx, ty, txts, fill, size, idName, anchor) => {
+    return drawTxt(svg, tx, ty, txts, fill, size, idName, anchor);
   },
-  drawTxts: (svg, x, y, width, txts, fill, fontsize, idN,className='texts')=>{
-    return  drawTxts(svg, x, y, width, txts, fill, fontsize, idN,className);
+  drawTxts: (svg, x, y, width, txts, fill, fontsize, idN, className = 'texts') => {
+    return drawTxts(svg, x, y, width, txts, fill, fontsize, idN, className);
   },
   drawCircle: (svg, x, y, r, fill, opacity, stroke, width, className, idName) => {
     return drawCircle(svg, x, y, r, fill, opacity, stroke, width, className, idName);
   },
-  drawPolygon: (svg, points, idName, opacity, strokeWidth, stroke, fill,className="polygon") => {
-    return drawPolygon(svg, points, idName, opacity, strokeWidth, stroke, fill,className);
+  drawPolygon: (svg, points, idName, opacity, strokeWidth, stroke, fill, className = "polygon") => {
+    return drawPolygon(svg, points, idName, opacity, strokeWidth, stroke, fill, className);
   },
   drawArc: (svg, x, y, arcPath, stroke, fill, className, idName, stroke_dasharray, width) => {
     return drawArc(svg, x, y, arcPath, stroke, fill, className, idName, stroke_dasharray, width);
@@ -420,16 +439,16 @@ export default {
   hasDuplicates: (arr1, arr2) => {
     return hasDuplicates(arr1, arr2);
   },
-  rgb2rgba:(rgb)=>{
+  rgb2rgba: (rgb) => {
     return rgb2rgba(rgb);
   },
-  drawImage:(svg, w, h,x,y, url, idName,className)=>{
-    return drawImage(svg, w, h,x,y, url, idName,className);
+  drawImage: (svg, w, h, x, y, url, idName, className) => {
+    return drawImage(svg, w, h, x, y, url, idName, className);
   },
-  sleep:(d)=>{
+  sleep: (d) => {
     return sleep(d);
   },
-  transitionSvg:(time,temp, x, y, w, h, fill, stroke, opacity, type)=>{
-    return transitionSvg(time,temp, x, y, w, h, fill, stroke, opacity, type);
+  transitionSvg: (time, temp, x, y, w, h, fill, stroke, opacity, type) => {
+    return transitionSvg(time, temp, x, y, w, h, fill, stroke, opacity, type);
   }
 }

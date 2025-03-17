@@ -214,6 +214,12 @@ export default {
         this.toolDelRel = val['delRel'];
       }
     },
+    showProType: {
+      deep: true,
+      handler(val) {
+        this.updateRel()
+      }
+    },
     proIdList(val) {
       const _this = this;
       _this.$bus.$emit("proIdList", val);
@@ -225,9 +231,8 @@ export default {
     proList(val) {
       let proLi = Array.from(val).map(pro => (pro['id']));
       let conNet = tools.generateConceptStats(proLi);
-      console.log('pro;o', conNet)
       this.proConLi = conNet[2]
-      this.$bus.$emit("proConNet", conNet);
+      this.$bus.$emit("proConNet", [...conNet,val]);
       this.updatePaper();
     }
   },
@@ -381,7 +386,7 @@ export default {
         let x = 470 - cons['layout'] * 50;
         let y = (idx + 1) * gapY;
         let r = 10;
-        let fill = this.colorMap[parseInt(cons['id'].split("-")[0])];
+        let fill = this.colorMap[parseInt(cons['id'].split("-")[0])-1];
         let opacity = .5;
         let stroke = 'white';
         let width = 1;

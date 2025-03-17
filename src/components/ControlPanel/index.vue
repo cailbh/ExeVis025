@@ -183,11 +183,12 @@ import domtoimage from 'dom-to-image';
 import tools from "@/utils/tools1.js";
 import { select } from 'd3';
 
+import quzProJson from "@/assets/json/quzPro.json";
 export default {
   props: ["videoTime"],
   data() {
     return {
-
+      quzProJson:quzProJson,
       tableData: [{
         key: 'Course : ',
         value: 'C Language'// Programming'
@@ -335,15 +336,15 @@ export default {
     FormPaper() {
       const _this = this;
       let data = [];
-      this.$http
-        // .get("/api/problem/allProblem", { params: { name: "12345" } }, {})
-        .post("/api/AutoFormPaper", { params: {paperIndex: [this.chapters,this.selectedDifficulty,this.questionTypes],paperId: _this.papersNum+""} }, {})
-        .then((response) => {
-          // _this.$bus.$emit("proIdList", response.body);
-          _this.paperData = response.body;
-          console.log('paper',_this.paperData)
-          _this.$bus.$emit("paperProIds", response.body);
-        });
+      // this.$http
+      //   .post("/api/AutoFormPaper", { params: {paperIndex: [this.chapters,this.selectedDifficulty,this.questionTypes],paperId: _this.papersNum+""} }, {})
+      //   .then((response) => {
+      //     _this.paperData = response.body;
+      //     console.log('paper',_this.paperData)
+      //     _this.$bus.$emit("paperProIds", response.body);
+      //   });
+      this.paperData = this.quzProJson[6]['problems']
+      this.$bus.$emit("paperProIds", _this.paperData);
     },
     iRowStyle: function ({ row, rowIndex }) {
       return 'height:25px ;font-size:10px';
